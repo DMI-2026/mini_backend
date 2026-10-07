@@ -1,18 +1,17 @@
 # Mini Backend: API de pedidos de cafetería
 
-API pequeña en FastAPI + SQLite para gestionar los pedidos de una cafetería. Está pensada para usarse desde un cliente Flutter. Incluye parámetros para simular latencia y errores, así que cada estado del cliente (carga, vacío, éxito y error) se puede reproducir cuando se necesite.
+API pequeña en Node.js + SQLite (sin dependencias externas) para gestionar los pedidos de una cafetería. Está pensada para usarse desde un cliente Flutter. Incluye parámetros para simular latencia y errores, así que cada estado del cliente (carga, vacío, éxito y error) se puede reproducir cuando se necesite.
 
 ## Inicio rápido
 
-Requiere [uv](https://docs.astral.sh/uv/).
+Requiere Node.js 22.13 o superior. No hace falta `npm install`: solo usa módulos integrados (`node:http`, `node:sqlite`, `node:test`).
 
 ```bash
-uv sync                      # instalar dependencias
-uv run fastapi dev main.py   # http://127.0.0.1:8000
-uv run pytest                # ejecutar los tests
+node server.js   # http://127.0.0.1:8000
+node --test      # ejecutar los tests
 ```
 
-Documentación interactiva: `http://127.0.0.1:8000/docs`
+Variables opcionales: `PORT` (8000), `HOST` (0.0.0.0), `DB_PATH` (app.db).
 
 | Variable  | Valor por defecto | Descripción                                |
 |-----------|-------------------|--------------------------------------------|
