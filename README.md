@@ -1,28 +1,28 @@
-# Mini Backend — Coffee Orders API
+# Mini Backend: API de pedidos de cafetería
 
-A small FastAPI + SQLite API for managing coffee shop orders. It is built to be consumed by a Flutter client and includes switches for simulating latency and errors, so every loading, empty, success and error state can be reproduced on demand.
+API pequeña en FastAPI + SQLite para gestionar los pedidos de una cafetería. Está pensada para usarse desde un cliente Flutter. Incluye parámetros para simular latencia y errores, así que cada estado del cliente (carga, vacío, éxito y error) se puede reproducir cuando se necesite.
 
-## Quick start
+## Inicio rápido
 
-Requires [uv](https://docs.astral.sh/uv/).
+Requiere [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync                      # install dependencies
+uv sync                      # instalar dependencias
 uv run fastapi dev main.py   # http://127.0.0.1:8000
-uv run pytest                # run tests
+uv run pytest                # ejecutar los tests
 ```
 
-Interactive docs: `http://127.0.0.1:8000/docs`
+Documentación interactiva: `http://127.0.0.1:8000/docs`
 
-| Setting   | Default  | Description                   |
-|-----------|----------|-------------------------------|
-| `DB_PATH` | `app.db` | Path to the SQLite database file. |
+| Variable  | Valor por defecto | Descripción                                |
+|-----------|-------------------|--------------------------------------------|
+| `DB_PATH` | `app.db`          | Ruta del archivo de la base de datos SQLite. |
 
-The `orders` table is created automatically on startup.
+La tabla `orders` se crea automáticamente al arrancar.
 
-> **Android emulator:** the host machine is reachable at `http://10.0.2.2:8000`, not `localhost`.
+> **Emulador de Android:** la máquina anfitriona se accede en `http://10.0.2.2:8000`, no en `localhost`.
 
-## Order model
+## Modelo de pedido
 
 ```json
 {
@@ -35,16 +35,16 @@ The `orders` table is created automatically on startup.
 }
 ```
 
-| Field        | Type     | Values / rules                                              |
-|--------------|----------|-------------------------------------------------------------|
-| `id`         | int      | Assigned by the server.                                     |
-| `customer`   | string   | 1–50 characters; surrounding whitespace is trimmed.         |
-| `drink`      | enum     | `espresso`, `americano`, `latte`, `cappuccino`, `mocha`     |
-| `size`       | enum     | `S`, `M`, `L`                                               |
-| `status`     | enum     | `pending`, `preparing`, `ready`, `delivered`, `cancelled`   |
-| `created_at` | datetime | ISO 8601, UTC. Assigned by the server.                      |
+| Campo        | Tipo     | Valores / reglas                                              |
+|--------------|----------|---------------------------------------------------------------|
+| `id`         | int      | Lo asigna el servidor.                                        |
+| `customer`   | string   | De 1 a 50 caracteres. Se eliminan los espacios al inicio y al final. |
+| `drink`      | enum     | `espresso`, `americano`, `latte`, `cappuccino`, `mocha`       |
+| `size`       | enum     | `S`, `M`, `L`                                                 |
+| `status`     | enum     | `pending`, `preparing`, `ready`, `delivered`, `cancelled`     |
+| `created_at` | datetime | ISO 8601, en UTC. Lo asigna el servidor.                      |
 
-### Status lifecycle
+### Ciclo de vida del estado
 
 ```
 pending ──► preparing ──► ready ──► delivered
@@ -52,72 +52,72 @@ pending ──► preparing ──► ready ──► delivered
    └──► cancelled ◄┘
 ```
 
-- Only the transitions shown above are allowed. Anything else returns `409 Conflict`.
-- `delivered` and `cancelled` are final.
-- `customer`, `drink` and `size` can only be edited while the order is `pending`.
+- Solo se permiten las transiciones del diagrama. Cualquier otra responde `409 Conflict`.
+- `delivered` y `cancelled` son estados finales.
+- `customer`, `drink` y `size` solo se pueden editar mientras el pedido está en `pending`.
 
 ## Endpoints
 
-| Method | Path                 | Description                     | Success | Errors             |
-|--------|----------------------|---------------------------------|---------|--------------------|
-| GET    | `/health`            | Health check, including the DB. | 200     |                    |
-| GET    | `/orders`            | List orders, newest first.      | 200     |                    |
-| GET    | `/orders/{id}`       | Get one order.                  | 200     | 404                |
-| POST   | `/orders`            | Create an order.                | 201     | 422                |
-| PATCH  | `/orders/{id}`       | Edit fields and/or change status. | 200   | 404, 409, 422      |
-| DELETE | `/orders/{id}`       | Delete an order.                | 204     | 404                |
+| Método | Ruta           | Descripción                               | Éxito | Errores       |
+|--------|----------------|-------------------------------------------|-------|---------------|
+| GET    | `/health`      | Comprobación de salud, incluida la base de datos. | 200 |           |
+| GET    | `/orders`      | Lista los pedidos, del más reciente al más antiguo. | 200 |         |
+| GET    | `/orders/{id}` | Obtiene un pedido.                        | 200   | 404           |
+| POST   | `/orders`      | Crea un pedido.                           | 201   | 422           |
+| PATCH  | `/orders/{id}` | Edita campos y/o cambia el estado.        | 200   | 404, 409, 422 |
+| DELETE | `/orders/{id}` | Elimina un pedido.                        | 204   | 404           |
 
-### Examples
+### Ejemplos
 
 ```bash
-# Create
+# Crear
 curl -X POST localhost:8000/orders \
   -H 'Content-Type: application/json' \
   -d '{"customer": "Ana", "drink": "latte", "size": "M"}'
 
-# Advance status
+# Avanzar el estado
 curl -X PATCH localhost:8000/orders/1 \
   -H 'Content-Type: application/json' \
   -d '{"status": "preparing"}'
 
-# Edit (only while pending)
+# Editar (solo en pending)
 curl -X PATCH localhost:8000/orders/1 \
   -H 'Content-Type: application/json' \
   -d '{"size": "L"}'
 ```
 
-`PATCH` accepts any subset of `customer`, `drink`, `size` and `status`.
+`PATCH` acepta cualquier combinación de `customer`, `drink`, `size` y `status`.
 
-## Simulating client states
+## Simular estados del cliente
 
-Every endpoint accepts two optional query parameters:
+Todos los endpoints aceptan dos parámetros de query opcionales:
 
-| Param   | Range     | Effect                                         |
-|---------|-----------|------------------------------------------------|
-| `delay` | 0–10      | Wait this many seconds before responding.      |
-| `fail`  | 400–599   | Respond with this HTTP status code instead.    |
+| Parámetro | Rango   | Efecto                                         |
+|-----------|---------|------------------------------------------------|
+| `delay`   | 0–10    | Espera esa cantidad de segundos antes de responder. |
+| `fail`    | 400–599 | Responde con ese código HTTP en lugar del normal. |
 
-Both parameters can be used together: `?delay=2&fail=500` waits 2 s and then fails.
+Se pueden combinar: `?delay=2&fail=500` espera 2 s y luego falla.
 
-| Client state      | How to trigger it                              |
-|-------------------|------------------------------------------------|
-| Loading           | `GET /orders?delay=3`                          |
-| Success           | Any normal request.                            |
-| Empty             | `GET /orders` with no orders in the database.  |
-| Network/server error | `GET /orders?fail=500` (or `503`, …)        |
-| Not found         | `GET /orders/999`                              |
-| Validation error  | `POST /orders` with `"customer": ""`           |
-| Business conflict | `PATCH` a `delivered` order to `preparing`     |
+| Estado del cliente      | Cómo provocarlo                                    |
+|-------------------------|----------------------------------------------------|
+| Carga                   | `GET /orders?delay=3`                              |
+| Éxito                   | Cualquier petición normal.                         |
+| Vacío                   | `GET /orders` sin pedidos en la base de datos.     |
+| Error de red o servidor | `GET /orders?fail=500` (o `503`, …)                |
+| No encontrado           | `GET /orders/999`                                  |
+| Error de validación     | `POST /orders` con `"customer": ""`                |
+| Conflicto de negocio    | `PATCH` de un pedido `delivered` a `preparing`     |
 
-## Error format
+## Formato de errores
 
-Errors use two different shapes, and the client must handle both:
+Los errores tienen dos formas distintas y el cliente debe manejar ambas:
 
 ```json
-// 404, 409 and simulated errors
+// 404, 409 y errores simulados
 { "detail": "Order 999 not found" }
 
-// 422 validation errors
+// 422, errores de validación
 {
   "detail": [
     { "type": "string_too_short", "loc": ["body", "customer"], "msg": "String should have at least 1 character", "input": "" }
@@ -125,8 +125,10 @@ Errors use two different shapes, and the client must handle both:
 }
 ```
 
-## Not included
+Los mensajes de error que devuelve la API están en inglés.
 
-- **Authentication:** every endpoint is public.
-- **CORS:** needed only for Flutter web.
-- **Pagination and filtering:** `GET /orders` returns every order.
+## No incluido
+
+- **Autenticación:** todos los endpoints son públicos.
+- **CORS:** solo hace falta para Flutter web.
+- **Paginación y filtros:** `GET /orders` devuelve todos los pedidos.
