@@ -127,6 +127,29 @@ Los errores tienen dos formas distintas y el cliente debe manejar ambas:
 
 Los mensajes de error que devuelve la API están en inglés.
 
+## Estructura sugerida del cliente Flutter
+
+MVVM organizado por feature:
+
+```
+lib/
+  core/
+    http_client.dart        # baseUrl, timeouts, ?delay/?fail para pruebas
+    failure.dart            # sealed class de errores de la app
+  features/
+    orders/
+      domain/
+        order.dart          # Order + enums (Drink, Size, OrderStatus)
+      data/
+        order_repository.dart  # HTTP → JSON → Order, y HTTP error → Failure
+      ui/
+        orders_view_model.dart
+        orders_screen.dart
+        widgets/
+          order_tile.dart
+  main.dart                 # inyecta dependencias
+```
+
 ## No incluido
 
 - **Autenticación:** todos los endpoints son públicos.
