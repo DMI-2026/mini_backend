@@ -145,8 +145,16 @@ async function route(db, req, url) {
   throw new HttpError(405, "Method Not Allowed");
 }
 
+// Open CORS for Flutter web dev (random localhost port). Android emulator doesn't need it.
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 export function createServer(db = openDb()) {
   return http.createServer(async (req, res) => {
+    if (req.method === "OPTIONS") return res.writeHead(204, CORS).end();
     let status, body;
     try {
       [status, body] = await route(db, req, new URL(req.url, "http://localhost"));
@@ -154,8 +162,8 @@ export function createServer(db = openDb()) {
       if (!(err instanceof HttpError)) console.error(err);
       [status, body] = err instanceof HttpError ? [err.status, { detail: err.detail }] : [500, { detail: "Internal Server Error" }];
     }
-    if (status === 204) return res.writeHead(204).end();
-    res.writeHead(status, { "Content-Type": "application/json" }).end(JSON.stringify(body));
+    if (status === 204) return res.writeHead(204, CORS).end();
+    res.writeHead(status, { ...CORS, "Content-Type": "application/json" }).end(JSON.stringify(body));
   });
 }
 

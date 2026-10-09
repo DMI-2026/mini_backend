@@ -48,3 +48,13 @@ test("simulate", async () => {
   assert.equal((await req("/orders?fail=200")).status, 422);
   assert.equal((await req("/orders?delay=0.1")).status, 200);
 });
+
+test("cors", async () => {
+  const pre = await req("/orders", "OPTIONS");
+  assert.equal(pre.status, 204);
+  assert.match(pre.headers.get("access-control-allow-methods"), /PATCH/);
+  assert.match(pre.headers.get("access-control-allow-headers"), /Content-Type/);
+  for (const res of [await req("/orders"), await req("/orders/abc"), await req(`/orders/${(await (await create()).json()).id}`, "DELETE")]) {
+    assert.equal(res.headers.get("access-control-allow-origin"), "*");
+  }
+});
